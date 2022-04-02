@@ -1,0 +1,5 @@
+name: formal-mtg
+depend:
+  standard-library
+  formal-prelude
+include: .
