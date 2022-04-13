@@ -4,17 +4,39 @@ open import Agda.Primitive using () renaming (Set to Type)
 open import Prelude.Init
 open import Prelude.General
 open import Prelude.Semigroup
+open import Prelude.DecEq
+open import Prelude.Measurable
+open import Prelude.Ord
+open import Prelude.Functor
+open import Prelude.Decidable
+open import Prelude.Lists
+open import Prelude.Listable
+open import Prelude.DecLists
+open import Prelude.Nary
 
 data Colour : Type where
   Red Green White Blue Black : Colour
+unquoteDecl DecEq-Colour = DERIVE DecEq [ quote Colour , DecEq-Colour ]
 
 -- Colour⁇ = Maybe Colour
 
--- T0D0: use a proper bag interface
-ManaPool = List (Maybe Colour)
+instance
+  Listable-Colour : Listable Colour
+  Listable-Colour = λ where
+    .witness → ⟦ Red , Green , White , Blue , Black ⟧
+    .finite  → λ where
+      Red   → auto
+      Green → auto
+      White → auto
+      Blue  → auto
+      Black → auto
 
--- _≈_ : Rel₀ ManaPool
--- s ≈ s′ = normalize s ≡ normalize s′
+  Listable-Maybe : ∀ {X : Type} → ⦃ Listable X ⦄ → Listable (Maybe X)
+  Listable-Maybe = λ where
+    .witness → nothing ∷ (just <$> witness)
+    .finite  → λ where
+      nothing  → here refl
+      (just x) → there (L.Mem.∈-map⁺ just (finite x))
 
 pattern colorless = nothing
 pattern colored x = just x
@@ -25,21 +47,66 @@ pattern U = colored Blue
 pattern B = colored Black
 pattern C = colorless
 
-instance
-  Semigroup-ManaPool : Semigroup ManaPool
-  Semigroup-ManaPool ._◇_ = _++_
+{-
+  -- T0D0: use a proper bag interface
+  ManaPool = List (Maybe Colour)
 
-infix 10 _∗_
-_∗_ : ℕ → Maybe Colour → ManaPool
-_∗_ = L.replicate
+  -- _≈_ : Rel₀ ManaPool
+  -- s ≈ s′ = normalize s ≡ normalize s′
 
-open MultiTest
+  instance
+    Semigroup-ManaPool : Semigroup ManaPool
+    Semigroup-ManaPool ._◇_ = _++_
+
+  infix 10 _∗_
+  _∗_ : ℕ → Maybe Colour → ManaPool
+  _∗_ = L.replicate
+
+  open MultiTest
+  private
+    _ = ManaPool
+    ∋⋮ C ∷ C ∷ W ∷ W ∷ []
+      ⋮ (C ∷ C ∷ []) ◇ (W ∷ W ∷ [])
+      ⋮ 2 ∗ C ◇ 2 ∗ W
+      ⋮∅
+-}
+
+import Prelude.Maps.Concrete as M
+open import Prelude.Maps.Concrete
+import Prelude.Sets.Concrete as S
+open import Prelude.Sets.Concrete
+
+Mana = Map⟨ Maybe Colour ↦ ℕ ⟩
+ManaPool = Mana
+ManaCost = Mana
+CardCost = Set⁺⟨ ManaCost ⟩
+ManaCostChoices = Map⟨ Set⟨ Maybe Colour ⟩ ↦ ℕ ⟩
 private
-  _ = ManaPool
-   ∋⋮ C ∷ C ∷ W ∷ W ∷ []
-    ⋮ (C ∷ C ∷ []) ◇ (W ∷ W ∷ [])
-    ⋮ 2 ∗ C ◇ 2 ∗ W
-    ⋮∅
+  instance _ = Semigroup-ℕ-+
+
+  _ : Mana
+  _ = M.singleton (C , 2)
+    ◇ M.singleton (W , 2)
+
+  _ : ManaPool
+  _ = M.singleton (C , 2)
+    ◇ M.singleton (W , 2)
+    ◇ M.singleton (R , 1)
+
+  -- 1BBB = ManaCost -- 1BBB
+  --   ∋ singletonᵐ (C , 1) ∪ᵐ singletonᵐ (B , 3)
+  -- 2WW = ManaCost -- 2WW
+  --   ∋ singletonᵐ (C , 2) ∪ᵐ singletonᵐ (W , 2)
+  -- 2WW/1BBB = CardCost -- 2WW/1BBB
+  --   ∋ singleton 2WW ∪ singleton 1BBB
+  --   , ?
+  -- _ = CardCost -- 2WW(R|G)
+  --   ∋ singleton (singleton (C , 2) ∪ singleton (W , 2) ∪ singleton (R , 1))
+  --   ∪ singleton (singleton (C , 2) ∪ singleton (W , 2) ∪ singleton (G , 1))
+
+-- unfold : ManaCostChoices →
+
+
 
 -- _≤_ : Rel₀ ManaPool
 -- consume⁺ : (m c : ManaPool) → .{ c ≤ m } → ManaPool
