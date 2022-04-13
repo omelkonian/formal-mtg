@@ -3,138 +3,80 @@
 
 <a id="21" class="Keyword">open</a> <a id="26" class="Keyword">import</a> <a id="33" href="Agda.Primitive.html" class="Module">Agda.Primitive</a> <a id="48" class="Keyword">using</a> <a id="54" class="Symbol">()</a> <a id="57" class="Keyword">renaming</a> <a id="66" class="Symbol">(</a><a id="67" href="Agda.Primitive.html#326" class="Primitive">Set</a> <a id="71" class="Symbol">to</a> <a id="74" class="Primitive">Type</a><a id="78" class="Symbol">)</a>
 <a id="80" class="Keyword">open</a> <a id="85" class="Keyword">import</a> <a id="92" href="Prelude.Init.html" class="Module">Prelude.Init</a>
-<a id="105" class="Keyword">open</a> <a id="110" class="Keyword">import</a> <a id="117" href="Prelude.General.html" class="Module">Prelude.General</a>
-<a id="133" class="Keyword">open</a> <a id="138" class="Keyword">import</a> <a id="145" href="Prelude.Semigroup.html" class="Module">Prelude.Semigroup</a>
+<a id="105" class="Keyword">open</a> <a id="110" class="Keyword">import</a> <a id="117" href="Prelude.DecEq.html" class="Module">Prelude.DecEq</a>
+<a id="131" class="Keyword">open</a> <a id="136" class="Keyword">import</a> <a id="143" href="Prelude.Semigroup.html" class="Module">Prelude.Semigroup</a>
+<a id="161" class="Keyword">import</a> <a id="168" href="Prelude.Maps.Concrete.html" class="Module">Prelude.Maps.Concrete</a> <a id="190" class="Symbol">as</a> <a id="193" class="Module">M</a>
+<a id="195" class="Keyword">open</a> <a id="200" class="Keyword">import</a> <a id="207" href="Prelude.Maps.Concrete.html" class="Module">Prelude.Maps.Concrete</a>
+<a id="229" class="Keyword">import</a> <a id="236" href="Prelude.Sets.Concrete.html" class="Module">Prelude.Sets.Concrete</a> <a id="258" class="Symbol">as</a> <a id="261" class="Module">S</a>
+<a id="263" class="Keyword">open</a> <a id="268" class="Keyword">import</a> <a id="275" href="Prelude.Sets.Concrete.html" class="Module">Prelude.Sets.Concrete</a>
 
-<a id="164" class="Keyword">data</a> <a id="Colour"></a><a id="169" href="Types.html#169" class="Datatype">Colour</a> <a id="176" class="Symbol">:</a> <a id="178" href="Types.html#74" class="Primitive">Type</a> <a id="183" class="Keyword">where</a>
-  <a id="Colour.Red"></a><a id="191" href="Types.html#191" class="InductiveConstructor">Red</a> <a id="Colour.Green"></a><a id="195" href="Types.html#195" class="InductiveConstructor">Green</a> <a id="Colour.White"></a><a id="201" href="Types.html#201" class="InductiveConstructor">White</a> <a id="Colour.Blue"></a><a id="207" href="Types.html#207" class="InductiveConstructor">Blue</a> <a id="Colour.Black"></a><a id="212" href="Types.html#212" class="InductiveConstructor">Black</a> <a id="218" class="Symbol">:</a> <a id="220" href="Types.html#169" class="Datatype">Colour</a>
+<a id="298" class="Keyword">data</a> <a id="Colour"></a><a id="303" href="Types.html#303" class="Datatype">Colour</a> <a id="310" class="Symbol">:</a> <a id="312" href="Types.html#74" class="Primitive">Type</a> <a id="317" class="Keyword">where</a>
+  <a id="Colour.Red"></a><a id="325" href="Types.html#325" class="InductiveConstructor">Red</a> <a id="Colour.Green"></a><a id="329" href="Types.html#329" class="InductiveConstructor">Green</a> <a id="Colour.White"></a><a id="335" href="Types.html#335" class="InductiveConstructor">White</a> <a id="Colour.Blue"></a><a id="341" href="Types.html#341" class="InductiveConstructor">Blue</a> <a id="Colour.Black"></a><a id="346" href="Types.html#346" class="InductiveConstructor">Black</a> <a id="352" class="Symbol">:</a> <a id="354" href="Types.html#303" class="Datatype">Colour</a>
+<a id="361" class="Keyword">unquoteDecl</a> <a id="DecEq-Colour"></a><a id="373" href="Types.html#373" class="Function">DecEq-Colour</a> <a id="386" class="Symbol">=</a> <a id="388" href="Prelude.Generics.html#9474" class="Function">DERIVE</a> <a id="395" href="Prelude.DecEq.Core.html#97" class="Record">DecEq</a> <a id="401" href="Data.List.Base.html#5025" class="Function Operator">[</a> <a id="403" class="Keyword">quote</a> <a id="409" href="Types.html#303" class="Datatype">Colour</a> <a id="416" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="418" href="Types.html#373" class="Function">DecEq-Colour</a> <a id="431" href="Data.List.Base.html#5025" class="Function Operator">]</a>
 
-<a id="228" class="Comment">-- Colour⁇ = Maybe Colour</a>
+<a id="434" class="Comment">-- Colour⁇ = Maybe Colour</a>
 
-<a id="255" class="Comment">-- T0D0: use a proper bag interface</a>
-<a id="ManaPool"></a><a id="291" href="Types.html#291" class="Function">ManaPool</a> <a id="300" class="Symbol">=</a> <a id="302" href="Agda.Builtin.List.html#148" class="Datatype">List</a> <a id="307" class="Symbol">(</a><a id="308" href="Agda.Builtin.Maybe.html#136" class="Datatype">Maybe</a> <a id="314" href="Types.html#169" class="Datatype">Colour</a><a id="320" class="Symbol">)</a>
+<a id="461" class="Keyword">pattern</a> <a id="colorless"></a><a id="469" href="Types.html#469" class="InductiveConstructor">colorless</a> <a id="479" class="Symbol">=</a> <a id="481" href="Agda.Builtin.Maybe.html#195" class="InductiveConstructor">nothing</a>
+<a id="489" class="Keyword">pattern</a> <a id="colored"></a><a id="497" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="505" href="Types.html#514" class="Bound">x</a> <a id="507" class="Symbol">=</a> <a id="509" href="Agda.Builtin.Maybe.html#174" class="InductiveConstructor">just</a> <a id="514" href="Types.html#514" class="Bound">x</a>
+<a id="516" class="Keyword">pattern</a> <a id="R"></a><a id="524" href="Types.html#524" class="InductiveConstructor">R</a> <a id="526" class="Symbol">=</a> <a id="528" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="536" href="Types.html#325" class="InductiveConstructor">Red</a>
+<a id="540" class="Keyword">pattern</a> <a id="G"></a><a id="548" href="Types.html#548" class="InductiveConstructor">G</a> <a id="550" class="Symbol">=</a> <a id="552" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="560" href="Types.html#329" class="InductiveConstructor">Green</a>
+<a id="566" class="Keyword">pattern</a> <a id="W"></a><a id="574" href="Types.html#574" class="InductiveConstructor">W</a> <a id="576" class="Symbol">=</a> <a id="578" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="586" href="Types.html#335" class="InductiveConstructor">White</a>
+<a id="592" class="Keyword">pattern</a> <a id="U"></a><a id="600" href="Types.html#600" class="InductiveConstructor">U</a> <a id="602" class="Symbol">=</a> <a id="604" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="612" href="Types.html#341" class="InductiveConstructor">Blue</a>
+<a id="617" class="Keyword">pattern</a> <a id="B"></a><a id="625" href="Types.html#625" class="InductiveConstructor">B</a> <a id="627" class="Symbol">=</a> <a id="629" href="Types.html#497" class="InductiveConstructor">colored</a> <a id="637" href="Types.html#346" class="InductiveConstructor">Black</a>
+<a id="643" class="Keyword">pattern</a> <a id="C"></a><a id="651" href="Types.html#651" class="InductiveConstructor">C</a> <a id="653" class="Symbol">=</a> <a id="655" href="Types.html#469" class="InductiveConstructor">colorless</a>
 
-<a id="323" class="Comment">-- _≈_ : Rel₀ ManaPool</a>
-<a id="346" class="Comment">-- s ≈ s′ = normalize s ≡ normalize s′</a>
+<a id="Mana"></a><a id="666" href="Types.html#666" class="Function">Mana</a> <a id="671" class="Symbol">=</a> <a id="673" href="Prelude.Maps.Concrete.html#487" class="Record">Map⟨</a> <a id="678" href="Agda.Builtin.Maybe.html#136" class="Datatype">Maybe</a> <a id="684" href="Types.html#303" class="Datatype">Colour</a> <a id="691" href="Prelude.Maps.Concrete.html#487" class="Record">↦</a> <a id="693" href="Agda.Builtin.Nat.html#192" class="Datatype">ℕ</a> <a id="695" href="Prelude.Maps.Concrete.html#487" class="Record">⟩</a>
+<a id="ManaPool"></a><a id="697" href="Types.html#697" class="Function">ManaPool</a> <a id="706" class="Symbol">=</a> <a id="708" href="Types.html#666" class="Function">Mana</a>
+<a id="ManaCost"></a><a id="713" href="Types.html#713" class="Function">ManaCost</a> <a id="722" class="Symbol">=</a> <a id="724" href="Types.html#666" class="Function">Mana</a>
+<a id="CardCost"></a><a id="729" href="Types.html#729" class="Function">CardCost</a> <a id="738" class="Symbol">=</a> <a id="740" href="Prelude.Sets.Concrete.html#5928" class="Record">Set⁺⟨</a> <a id="746" href="Types.html#713" class="Function">ManaCost</a> <a id="755" href="Prelude.Sets.Concrete.html#5928" class="Record">⟩</a>
+<a id="ManaCostChoices"></a><a id="757" href="Types.html#757" class="Function">ManaCostChoices</a> <a id="773" class="Symbol">=</a> <a id="775" href="Prelude.Maps.Concrete.html#487" class="Record">Map⟨</a> <a id="780" href="Prelude.Sets.Concrete.html#898" class="Record">Set⟨</a> <a id="785" href="Agda.Builtin.Maybe.html#136" class="Datatype">Maybe</a> <a id="791" href="Types.html#303" class="Datatype">Colour</a> <a id="798" href="Prelude.Sets.Concrete.html#898" class="Record">⟩</a> <a id="800" href="Prelude.Maps.Concrete.html#487" class="Record">↦</a> <a id="802" href="Agda.Builtin.Nat.html#192" class="Datatype">ℕ</a> <a id="804" href="Prelude.Maps.Concrete.html#487" class="Record">⟩</a>
+<a id="806" class="Keyword">private</a>
+  <a id="816" class="Keyword">instance</a> <a id="825" href="Types.html#825" class="Function">_</a> <a id="827" class="Symbol">=</a> <a id="829" href="Prelude.Semigroup.html#2075" class="Function">Semigroup-ℕ-+</a>
 
-<a id="386" class="Keyword">pattern</a> <a id="colorless"></a><a id="394" href="Types.html#394" class="InductiveConstructor">colorless</a> <a id="404" class="Symbol">=</a> <a id="406" href="Agda.Builtin.Maybe.html#195" class="InductiveConstructor">nothing</a>
-<a id="414" class="Keyword">pattern</a> <a id="colored"></a><a id="422" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="430" href="Types.html#439" class="Bound">x</a> <a id="432" class="Symbol">=</a> <a id="434" href="Agda.Builtin.Maybe.html#174" class="InductiveConstructor">just</a> <a id="439" href="Types.html#439" class="Bound">x</a>
-<a id="441" class="Keyword">pattern</a> <a id="R"></a><a id="449" href="Types.html#449" class="InductiveConstructor">R</a> <a id="451" class="Symbol">=</a> <a id="453" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="461" href="Types.html#191" class="InductiveConstructor">Red</a>
-<a id="465" class="Keyword">pattern</a> <a id="G"></a><a id="473" href="Types.html#473" class="InductiveConstructor">G</a> <a id="475" class="Symbol">=</a> <a id="477" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="485" href="Types.html#195" class="InductiveConstructor">Green</a>
-<a id="491" class="Keyword">pattern</a> <a id="W"></a><a id="499" href="Types.html#499" class="InductiveConstructor">W</a> <a id="501" class="Symbol">=</a> <a id="503" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="511" href="Types.html#201" class="InductiveConstructor">White</a>
-<a id="517" class="Keyword">pattern</a> <a id="U"></a><a id="525" href="Types.html#525" class="InductiveConstructor">U</a> <a id="527" class="Symbol">=</a> <a id="529" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="537" href="Types.html#207" class="InductiveConstructor">Blue</a>
-<a id="542" class="Keyword">pattern</a> <a id="B"></a><a id="550" href="Types.html#550" class="InductiveConstructor">B</a> <a id="552" class="Symbol">=</a> <a id="554" href="Types.html#422" class="InductiveConstructor">colored</a> <a id="562" href="Types.html#212" class="InductiveConstructor">Black</a>
-<a id="568" class="Keyword">pattern</a> <a id="C"></a><a id="576" href="Types.html#576" class="InductiveConstructor">C</a> <a id="578" class="Symbol">=</a> <a id="580" href="Types.html#394" class="InductiveConstructor">colorless</a>
+  <a id="m"></a><a id="846" href="Types.html#846" class="Function">m</a> <a id="848" class="Symbol">:</a> <a id="850" href="Types.html#666" class="Function">Mana</a>
+  <a id="857" href="Types.html#846" class="Function">m</a> <a id="859" class="Symbol">=</a> <a id="861" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="873" class="Symbol">(</a><a id="874" href="Types.html#651" class="InductiveConstructor">C</a> <a id="876" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="878" class="Number">2</a><a id="879" class="Symbol">)</a>
+    <a id="885" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="887" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="899" class="Symbol">(</a><a id="900" href="Types.html#574" class="InductiveConstructor">W</a> <a id="902" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="904" class="Number">2</a><a id="905" class="Symbol">)</a>
 
-<a id="591" class="Keyword">instance</a>
-  <a id="Semigroup-ManaPool"></a><a id="602" href="Types.html#602" class="Function">Semigroup-ManaPool</a> <a id="621" class="Symbol">:</a> <a id="623" href="Prelude.Semigroup.html#94" class="Record">Semigroup</a> <a id="633" href="Types.html#291" class="Function">ManaPool</a>
-  <a id="644" href="Types.html#602" class="Function">Semigroup-ManaPool</a> <a id="663" class="Symbol">.</a><a id="664" href="Prelude.Semigroup.html#158" class="Field Operator">_◇_</a> <a id="668" class="Symbol">=</a> <a id="670" href="Data.List.Base.html#1810" class="Function Operator">_++_</a>
+  <a id="m′"></a><a id="910" href="Types.html#910" class="Function">m′</a> <a id="913" class="Symbol">:</a> <a id="915" href="Types.html#666" class="Function">Mana</a>
+  <a id="922" href="Types.html#910" class="Function">m′</a> <a id="925" class="Symbol">=</a> <a id="927" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="939" class="Symbol">(</a><a id="940" href="Types.html#651" class="InductiveConstructor">C</a> <a id="942" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="944" class="Number">4</a><a id="945" class="Symbol">)</a>
+     <a id="952" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="954" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="966" class="Symbol">(</a><a id="967" href="Types.html#574" class="InductiveConstructor">W</a> <a id="969" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="971" class="Number">2</a><a id="972" class="Symbol">)</a>
 
-<a id="676" class="Keyword">infix</a> <a id="682" class="Number">10</a> <a id="685" href="Types.html#689" class="Function Operator">_∗_</a>
-<a id="_∗_"></a><a id="689" href="Types.html#689" class="Function Operator">_∗_</a> <a id="693" class="Symbol">:</a> <a id="695" href="Agda.Builtin.Nat.html#192" class="Datatype">ℕ</a> <a id="697" class="Symbol">→</a> <a id="699" href="Agda.Builtin.Maybe.html#136" class="Datatype">Maybe</a> <a id="705" href="Types.html#169" class="Datatype">Colour</a> <a id="712" class="Symbol">→</a> <a id="714" href="Types.html#291" class="Function">ManaPool</a>
-<a id="723" href="Types.html#689" class="Function Operator">_∗_</a> <a id="727" class="Symbol">=</a> <a id="729" href="Data.List.Base.html#5139" class="Function">L.replicate</a>
+  <a id="977" class="Comment">-- _ : m ◇ M.singleton (C , 2) ≡ m′</a>
+  <a id="1015" class="Comment">-- _ = ?</a>
 
-<a id="742" class="Keyword">open</a> <a id="747" href="Prelude.General.html#10654" class="Module">MultiTest</a>
-<a id="757" class="Keyword">private</a>
-  <a id="767" href="Types.html#767" class="Function">_</a> <a id="769" class="Symbol">=</a> <a id="771" href="Types.html#291" class="Function">ManaPool</a>
-   <a id="783" href="Prelude.General.html#10739" class="Function Operator">∋⋮</a> <a id="786" href="Types.html#576" class="InductiveConstructor">C</a> <a id="788" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="790" href="Types.html#576" class="InductiveConstructor">C</a> <a id="792" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="794" href="Types.html#499" class="InductiveConstructor">W</a> <a id="796" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="798" href="Types.html#499" class="InductiveConstructor">W</a> <a id="800" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="802" href="Agda.Builtin.List.html#185" class="InductiveConstructor">[]</a>
-    <a id="809" class="InductiveConstructor Operator">⋮</a> <a id="811" class="Symbol">(</a><a id="812" href="Types.html#576" class="InductiveConstructor">C</a> <a id="814" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="816" href="Types.html#576" class="InductiveConstructor">C</a> <a id="818" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="820" href="Agda.Builtin.List.html#185" class="InductiveConstructor">[]</a><a id="822" class="Symbol">)</a> <a id="824" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="826" class="Symbol">(</a><a id="827" href="Types.html#499" class="InductiveConstructor">W</a> <a id="829" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="831" href="Types.html#499" class="InductiveConstructor">W</a> <a id="833" href="Agda.Builtin.List.html#200" class="InductiveConstructor Operator">∷</a> <a id="835" href="Agda.Builtin.List.html#185" class="InductiveConstructor">[]</a><a id="837" class="Symbol">)</a>
-    <a id="843" class="InductiveConstructor Operator">⋮</a> <a id="845" class="Number">2</a> <a id="847" href="Types.html#689" class="Function Operator">∗</a> <a id="849" href="Types.html#576" class="InductiveConstructor">C</a> <a id="851" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="853" class="Number">2</a> <a id="855" href="Types.html#689" class="Function Operator">∗</a> <a id="857" href="Types.html#499" class="InductiveConstructor">W</a>
-    <a id="863" href="Prelude.General.html#10864" class="InductiveConstructor Operator">⋮∅</a>
+  <a id="1027" href="Types.html#1027" class="Function">_</a> <a id="1029" class="Symbol">:</a> <a id="1031" href="Types.html#697" class="Function">ManaPool</a>
+  <a id="1042" class="Symbol">_</a> <a id="1044" class="Symbol">=</a> <a id="1046" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="1058" class="Symbol">(</a><a id="1059" href="Types.html#651" class="InductiveConstructor">C</a> <a id="1061" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="1063" class="Number">2</a><a id="1064" class="Symbol">)</a>
+    <a id="1070" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="1072" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="1084" class="Symbol">(</a><a id="1085" href="Types.html#574" class="InductiveConstructor">W</a> <a id="1087" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="1089" class="Number">2</a><a id="1090" class="Symbol">)</a>
+    <a id="1096" href="Prelude.Semigroup.html#158" class="Field Operator">◇</a> <a id="1098" href="Prelude.Maps.Concrete.html#900" class="Function">M.singleton</a> <a id="1110" class="Symbol">(</a><a id="1111" href="Types.html#524" class="InductiveConstructor">R</a> <a id="1113" href="Agda.Builtin.Sigma.html#236" class="InductiveConstructor Operator">,</a> <a id="1115" class="Number">1</a><a id="1116" class="Symbol">)</a>
 
-<a id="867" class="Comment">-- _≤_ : Rel₀ ManaPool</a>
-<a id="890" class="Comment">-- consume⁺ : (m c : ManaPool) → .{ c ≤ m } → ManaPool</a>
+  <a id="1121" class="Comment">-- 1BBB = ManaCost -- 1BBB</a>
+  <a id="1150" class="Comment">--   ∋ singletonᵐ (C , 1) ∪ᵐ singletonᵐ (B , 3)</a>
+  <a id="1200" class="Comment">-- 2WW = ManaCost -- 2WW</a>
+  <a id="1227" class="Comment">--   ∋ singletonᵐ (C , 2) ∪ᵐ singletonᵐ (W , 2)</a>
+  <a id="1277" class="Comment">-- 2WW/1BBB = CardCost -- 2WW/1BBB</a>
+  <a id="1314" class="Comment">--   ∋ singleton 2WW ∪ singleton 1BBB</a>
+  <a id="1354" class="Comment">--   , ?</a>
+  <a id="1365" class="Comment">-- _ = CardCost -- 2WW(R|G)</a>
+  <a id="1395" class="Comment">--   ∋ singleton (singleton (C , 2) ∪ singleton (W , 2) ∪ singleton (R , 1))</a>
+  <a id="1474" class="Comment">--   ∪ singleton (singleton (C , 2) ∪ singleton (W , 2) ∪ singleton (G , 1))</a>
 
-<a id="946" class="Comment">-- spend : ManaPool → Maybe Colour → Maybe ManaPool</a>
-<a id="998" class="Comment">-- spend m = λ where</a>
-<a id="1019" class="Comment">--   colorless →</a>
-<a id="1036" class="Comment">--     if colorless ∈ m (m′) then</a>
-<a id="1070" class="Comment">--       just m′</a>
-<a id="1087" class="Comment">--     else ...</a>
-<a id="1103" class="Comment">--   (just _) → ?</a>
+<a id="1552" class="Comment">-- unfold : ManaCostChoices →</a>
 
-<a id="1122" class="Comment">-- data _≺_ : Rel₀ ManaPool where</a>
-<a id="1156" class="Comment">--   base :</a>
-<a id="1168" class="Comment">--     ────</a>
-<a id="1180" class="Comment">--     [] ≺ m</a>
-<a id="1194" class="Comment">--   step :</a>
-<a id="1206" class="Comment">--     ?</a>
+<a id="1583" class="Comment">-- Cost = ManaCost ⊎ SacrificeCost</a>
 
-<a id="1216" class="Comment">-- spend∗ m (colorless ∷ c) = ?</a>
-<a id="1248" class="Comment">--   let c∅ , c′ = filter Is-just c</a>
-<a id="1284" class="Comment">--   m′ ← spend∗ m c′</a>
-<a id="1306" class="Comment">--   c∅ &lt;-&gt; m′</a>
+<a id="1619" class="Comment">-- data CardType : Type where</a>
+<a id="1649" class="Comment">--   LandType CreatureType : CardType</a>
 
+<a id="1688" class="Comment">-- data Card : Type where</a>
+<a id="1714" class="Comment">--   Land : Colour → Card</a>
+<a id="1740" class="Comment">--   Creature : ManaCost →  → Card</a>
 
-<a id="1323" class="Comment">-- spend∗ : ManaPool → ManaPool → Maybe ManaPool</a>
-<a id="1372" class="Comment">-- spend∗ m [] = just m</a>
-<a id="1396" class="Comment">-- spend∗ m (colorless ∷ c) = ?</a>
-<a id="1428" class="Comment">--   let c∅ , c′ = filter Is-just c</a>
-<a id="1464" class="Comment">--   m′ ← spend∗ m c′</a>
-<a id="1486" class="Comment">--   c∅ &lt;-&gt; m′</a>
+<a id="1776" class="Comment">-- record Card : Type where</a>
+<a id="1804" class="Comment">--   field</a>
+<a id="1815" class="Comment">--     type : Set⁺⟨ CardType ⟩</a>
+<a id="1846" class="Comment">--     manaCost</a>
 
-<a id="1502" class="Comment">-- e.g. calculate ℙ(ManaPool) and brute-force (mutanti mutandis)</a>
-
-<a id="1568" class="Comment">-- spend∗ m (just base ∷ c) = ?</a>
-<a id="1600" class="Comment">-- spend∗ m (x ∷ c) = do</a>
-<a id="1625" class="Comment">--   m′ ← spend x m</a>
-
-<a id="1646" class="Comment">-- consumeAuto : ManaPool → Cost → Maybe ManaPool</a>
-<a id="1696" class="Comment">-- consumeAuto m c = consume m &lt;$&gt; makeChoice c</a>
-
-
-<a id="1746" class="Comment">-- m = {1*(R⊎⋯⊎B)}⁺</a>
-<a id="1766" class="Comment">-- c = {1*R} / ⋯ / {1*B} ≈ {1*C}</a>
-
-
-<a id="1801" class="Comment">-- m  = {1*R}⁺ {1*C}⁺ ≈ {1*R}⁺ {1*(R⊎⋯⊎B)}⁺</a>
-<a id="1845" class="Comment">-- c  = {1*R}⁻</a>
-<a id="1860" class="Comment">-- m′ = {1*C}⁺</a>
-
-<a id="1876" class="Comment">-- m  = {1*R}⁺ {1*C}⁺</a>
-<a id="1898" class="Comment">-- c  = {1*C}⁻</a>
-<a id="1913" class="Comment">-- m′ = {1*R}⁺ | {1*C}⁺</a>
-
-<a id="1938" class="Comment">-- BASE := R | ⋯ | B</a>
-
-<a id="1960" class="Comment">-- ∙ {n*&lt;BASE&gt;}⁺</a>
-<a id="1977" class="Comment">-- ∙ n ≥ m</a>
-<a id="1988" class="Comment">-- ∙ {m*&lt;BASE&gt;}⁻</a>
-<a id="2005" class="Comment">--   ────────────────</a>
-<a id="2027" class="Comment">--   (n-m)*&lt;BASE&gt;⁺</a>
-
-<a id="2047" class="Comment">-- R ↝ R ⊎ G ↝ ⋯ ↝ C</a>
-
-<a id="2069" class="Comment">-- ∙ {n*_}⁺</a>
-<a id="2081" class="Comment">-- ∙ n ≥ m</a>
-<a id="2092" class="Comment">-- ∙ {m*C}⁻</a>
-<a id="2104" class="Comment">--   ────────────────</a>
-<a id="2126" class="Comment">--   (n-m)*&lt;BASE&gt;⁺</a>
-
-<a id="2146" class="Comment">-- [1*R,2*G,1*R,6*C, .... 1000 elements ...]</a>
-<a id="2191" class="Comment">-- sieve 2*R ↝ [2*G,6*C.... 1000 elements ...]</a>
-<a id="2238" class="Comment">-- [2*G,1*R,6*C,1*R]</a>
-
-
-
-<a id="2262" class="Comment">-- ⟦_⟧ : ManaCost → Pred₀ (Multiset⟨ Land ⟩)</a>
-
-
-<a id="2309" class="Comment">-- Cost = ManaCost ⊎ SacrificeCost</a>
-
-<a id="2345" class="Comment">-- data CardType : Type where</a>
-<a id="2375" class="Comment">--   LandType CreatureType : CardType</a>
-
-<a id="2414" class="Comment">-- data Card : Type where</a>
-<a id="2440" class="Comment">--   Land : Colour → Card</a>
-<a id="2466" class="Comment">--   Creature : ManaCost →  → Card</a>
-
-<a id="2502" class="Comment">-- record Card : Type where</a>
-<a id="2530" class="Comment">--   field</a>
-<a id="2541" class="Comment">--     type : Set⁺⟨ CardType ⟩</a>
-<a id="2572" class="Comment">--     manaCost</a>
-
-<a id="2589" class="Comment">{- ** Parsing/pretty-printing: interface to the outside world.
+<a id="1863" class="Comment">{- ** Parsing/pretty-printing: interface to the outside world.
   instance
     Parser ManaCost : String → Maybe ManaCost
     Show ManaCost : ManaCost → String
