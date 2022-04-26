@@ -4,11 +4,8 @@ open import Prelude.Init
 open SetAsType
 open import Prelude.DecEq
 open import Prelude.Semigroup
--- import Prelude.Maps.Concrete as M
 open import Prelude.Maps.Concrete
 import Prelude.Sets.Concrete as S
--- open import Prelude.Sets.Concrete
--- open import Prelude.Lists
 open import Prelude.DecLists
 open import Prelude.FromList
 open import Prelude.ToList
@@ -17,6 +14,8 @@ open import Prelude.Functor
 open import Prelude.Decidable
 open import Prelude.Ord
 open import Prelude.Monoid
+open import Prelude.InferenceRules
+open import Prelude.Closures
 
 data Colour : Type where
   Red Green White Blue Black : Colour
@@ -166,6 +165,8 @@ data Card : Type where
   Creature  : CardCost → S.Set⁺⟨ CreatureType ⟩ → CreatureStats → Card
 unquoteDecl DecEq-Card = DERIVE DecEq [ quote Card , DecEq-Card ]
 
+private variable c c′ c″ : Card
+
 Mountain = BasicLand Red
 Forest   = BasicLand Green
 Plains   = BasicLand White
@@ -200,44 +201,50 @@ OnakkeOgre = Card ∋ Creature
 --   (Creature _ _ _) → ⊤
 --   _ → ⊥
 
--- properties : Card → Type
--- properties = λ where
---   (BasicLand _) → LandProperties
---   (Creature _ _ _) → CreatureProperties
+LandProperties = ⊤
 
 record CreatureProperties : Type where
-  field
-    summoningSickness : Bool
+  field summoningSickness : Bool
 open CreatureProperties public
+
+Properties : Card → Type
+Properties = λ where
+  (BasicLand _)    → LandProperties
+  (Creature _ _ _) → CreatureProperties
 
 record CardInstance : Type where
   field
     card : Card
     tapped : Bool
-    -- properties : properties card
-    properties : case card of λ where
-      (BasicLand _) → ⊤
-      (Creature _ _ _) → CreatureProperties
+    properties : Properties card
 open CardInstance public
 
-goProps : Op₁ CreatureProperties
-goProps ps = record ps {summoningSickness = false}
+private
+  unsummon : Op₁ CreatureProperties
+  unsummon ps = record ps {summoningSickness = false}
 
--- go : Op₁ CardInstance
--- go ci@(record {card = c; properties = ps})
---   with ci .card
--- ... | BasicLand _    = ci
--- ... | Creature _ _ _ = ? -- record ci {properties = goProps ps}
+  liftProp : Op₁ CreatureProperties → Op₁ (Properties c)
+  liftProp {c = c} go ps with c
+  ... | BasicLand _    = ps
+  ... | Creature _ _ _ = go ps
 
+  liftProp′ : Op₁ CardInstance
+  liftProp′ ci@(record {card = c; tapped = tp; properties = ps})
+    = record {card = c; tapped = tp; properties = liftProp unsummon ps}
 
-{-
 Cards = List Card
 Deck = Cards
 Hand = Cards
 
+private variable
+  cs cs′ cs″ : Cards
+  d d′ d″ : Deck
+  h h′ h″ : Hand
+
 record Player : Type where
   constructor mkPlayer
   field
+    name : String
     library : Cards
     hand : Hand
     graveyard : Cards
@@ -245,6 +252,75 @@ record Player : Type where
     life : ℕ
     control : List CardInstance
 open Player public
+
+record GameState : Type where
+  field
+    -- finished : Maybe Outcome
+    player₁  : Player
+    player₂  : Player
+open GameState public
+private variable s s′ s″ : GameState
+
+defᵖ : Player
+defᵖ = λ where
+  .name → ""
+  .library → []
+  .hand → []
+  .graveyard → []
+  .exile → []
+  .life → 0
+  .control → []
+
+def : GameState
+def = record {player₁ = defᵖ; player₂ = defᵖ}
+
+toControl : ∀ c → Properties c
+toControl = λ where
+  (BasicLand _)    → tt
+  (Creature _ _ _) → record {summoningSickness = true}
+
+defInstance : Card → CardInstance
+defInstance c = record {card = c; tapped = false; properties = toControl c}
+
+data _↝_ : Rel₀ GameState where
+
+  PlayLandˡ : ⦃ _ : s .player₁ .hand ≡ c ∷ cs ⦄ →
+
+    ─────────────────────────────────
+    s ↝ record s
+      { player₁ = record (s .player₁)
+        { control = [ defInstance c ]
+        ; hand = cs
+        } }
+
+  PlayLandʳ : ⦃ _ : s .player₂ .hand ≡ c ∷ cs ⦄ →
+
+    ─────────────────────────────────
+    s ↝ record s
+      { player₂ = record (s .player₂)
+        { control = [ defInstance c ]
+        ; hand = cs
+        } }
+
+open ReflexiveTransitiveClosure _↝_ public
+  using (begin_; _∎)
+  renaming (_—→⟨_⟩_ to _↝⟨_⟩_; _—↠_ to _↝∗_)
+
+private
+  S  = record { player₁ = record defᵖ {name = "Orestis"; hand = [ Forest ]}
+              ; player₂ = record defᵖ {name = "Kokos"}
+              }
+  S′ = record S
+    { player₁ = record (S .player₁)
+      { hand = []
+      ; control = [ defInstance Forest ]
+      } }
+
+  _ : S ↝∗ S′
+  _ = begin S  ↝⟨ PlayLandˡ ⟩
+            S′ ∎
+
+{-
 
 removeSummoningSickness : Player → Player
 removeSummoningSickness p = p {control = go <$> p .control}
