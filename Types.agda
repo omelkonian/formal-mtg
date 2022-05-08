@@ -193,13 +193,13 @@ OnakkeOgre = Card ∋ Creature
   (S.fromList⁺ ⟦ Ogre , Warrior ⟧)
   (4 / 2)
 
--- IsLand IsCreature : Pred₀ Card
--- IsLand = λ where
---   (BasicLand _) → ⊤
---   _ → ⊥
--- IsCreature = λ where
---   (Creature _ _ _) → ⊤
---   _ → ⊥
+IsLand IsCreature : Pred₀ Card
+IsLand = λ where
+  (BasicLand _) → ⊤
+  _ → ⊥
+IsCreature = λ where
+  (Creature _ _ _) → ⊤
+  _ → ⊥
 
 LandProperties = ⊤
 
@@ -261,6 +261,39 @@ record GameState : Type where
 open GameState public
 private variable s s′ s″ : GameState
 
+_∙𝕃 = player₁
+_∙ℝ = player₂
+
+_∙𝕃=_ _∙ℝ=_ : GameState → Player → GameState
+s ∙𝕃= p = record s {player₁ = p}
+s ∙ℝ= p = record s {player₂ = p}
+
+-- _∙𝕃↝_ _∙ℝ↝_ : GameState → Op₁ Player → GameState
+-- s ∙𝕃↝ f = record s {player₁ = f (s .player₁)}
+-- s ∙ℝ↝ f = record s {player₂ = f (s .player₂)}
+
+Getter : Op₂ Type
+Getter X Y = X → Y
+
+Setter : Op₂ Type
+Setter X Y = X → Y → X
+
+record Lens (X Y : Type) : Type where
+  field
+    getter : Getter X Y
+    setter : Setter X Y
+
+  modify : X → Op₁ Y → X
+  -- modify : (x : X)
+            -- → (f : (y : Y) → y ≡ x .getter → Y)
+            -- → Σ (x′ : X). x′ .getter ≡ f (x .getter) refl
+  modify s f = s .setter (f $ s .getter)
+open Lens public
+
+𝕃 ℝ : Lens GameState Player
+𝕃 = record {getter = _∙𝕃; setter = _∙𝕃=_}
+ℝ = record {getter = _∙ℝ; setter = _∙ℝ=_}
+
 defᵖ : Player
 defᵖ = λ where
   .name → ""
@@ -282,25 +315,34 @@ toControl = λ where
 defInstance : Card → CardInstance
 defInstance c = record {card = c; tapped = false; properties = toControl c}
 
+open import Prelude.Lists
+open import Prelude.Membership
+
+infix 4 _↝_
 data _↝_ : Rel₀ GameState where
 
-  PlayLandˡ : ⦃ _ : s .player₁ .hand ≡ c ∷ cs ⦄ →
+  PlayLand : ∀ (player : Lens GameState Player) →
+    let p   = player .getter s
+        p=_ = player .setter s
+        p↝_ = modify player s
 
+        ctrl = p .control
+        h    = p .hand
+    in
+    (c∈ : c ∈ h) →
+    IsLand c →
     ─────────────────────────────────
-    s ↝ record s
-      { player₁ = record (s .player₁)
-        { control = [ defInstance c ]
-        ; hand = cs
-        } }
+    s ↝ p↝
+      ∙p=
+      λ p → record p
+        { control = defInstance c ∷ ctrl
+        ; hand    = remove h (L.Any.index c∈)
+        }
+   = record s { x = s .x; y = s .y; ⋯ 100 fields ⋯
+              ; p = f (s .p) }
+   = s ∙p↝ f
 
-  PlayLandʳ : ⦃ _ : s .player₂ .hand ≡ c ∷ cs ⦄ →
-
-    ─────────────────────────────────
-    s ↝ record s
-      { player₂ = record (s .player₂)
-        { control = [ defInstance c ]
-        ; hand = cs
-        } }
+-- playCard ...
 
 open ReflexiveTransitiveClosure _↝_ public
   using (begin_; _∎)
@@ -317,9 +359,17 @@ private
       } }
 
   _ : S ↝∗ S′
-  _ = begin S  ↝⟨ PlayLandˡ ⟩
-            S′ ∎
+  _ = begin
+      S
+    ↝⟨ PlayLand 𝕃 auto auto ⟩
+      S′
+    ∎
 
+  .player ≔ ....
+  ∧ .hand ≔
+
+
+-- T0D0: simple game with only lands & creatures
 {-
 
 removeSummoningSickness : Player → Player
