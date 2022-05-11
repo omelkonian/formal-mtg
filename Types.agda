@@ -2,9 +2,11 @@ module Types where
 
 open import Prelude.Init
 open SetAsType
+open L using (_[_]%=_)
 open import Prelude.DecEq
 open import Prelude.Semigroup
 open import Prelude.Maps.Concrete
+open import Prelude.Sets.Concrete using (_∈ˢ_)
 import Prelude.Sets.Concrete as S
 open import Prelude.DecLists
 open import Prelude.FromList
@@ -43,9 +45,17 @@ ManaPool = Mana
 ManaCost = Mana
 CardCost = S.Set⟨ ManaCost ⟩
 ManaCostChoices = Map⟨ S.Set⁺⟨ Colour⁇ ⟩ ↦ ℕ ⟩
+private variable
+  mp mp′ : ManaPool
+  mc mc′ : ManaCost
+  cc cc′ : CardCost
+  mcc mcc′ : ManaCostChoices
 
 instance _ = Semigroup-ℕ-+
 instance _ = Monoid-ℕ-+
+
+_─ᵐ_ : Mana → Mana → Maybe Mana
+_─ᵐ_ = _-ᵐ_ _∸_
 
 infix 10 _↦_
 _↦_ = (Maybe Colour → ℕ → Mana) ∋ singleton ∘₂ _,_
@@ -170,8 +180,18 @@ data Card : Type where
   BasicLand : Colour → Card
   Creature  : CardCost → S.Set⁺⟨ CreatureType ⟩ → CreatureStats → Card
 unquoteDecl DecEq-Card = DERIVE DecEq [ quote Card , DecEq-Card ]
-
 private variable c c′ c″ : Card
+
+-- T0D0 lenses for Cards?
+_∙cost : Card → CardCost
+_∙cost = λ where
+  (BasicLand _)    → S.∅
+  (Creature c _ _) → c
+
+_∙mana : Card → Mana
+_∙mana = λ where
+  (BasicLand c)    → just c ↦ 1
+  (Creature _ _ _) → ∅
 
 Mountain = BasicLand Red
 Forest   = BasicLand Green
@@ -223,7 +243,14 @@ record CardInstance : Type where
     card : Card
     tapped : Bool
     properties : Properties card
+  _∙card = card
 open CardInstance public
+-- unquoteDecl DecEq-CardInstance = DERIVE DecEq [ quote CardInstance , DecEq-CardInstance ]
+private variable ci ci′ : CardInstance
+
+_∙tap _∙untap : Op₁ CardInstance
+ci ∙tap = record ci {tapped = true}
+ci ∙untap = record ci {tapped = false}
 
 private
   unsummon : Op₁ CreatureProperties
@@ -240,11 +267,13 @@ private
 
 Cards = List Card
 Deck = Cards
+Library = Cards
 Hand = Cards
 
 private variable
   cs cs′ cs″ : Cards
   d d′ d″ : Deck
+  lib lib′ lib″ : Library
   h h′ h″ : Hand
 
 record Player : Type where
@@ -257,6 +286,7 @@ record Player : Type where
     exile : Cards
     life : ℕ
     control : List CardInstance
+    manaPool : ManaPool
 open Player public
 unquoteDecl $name _∙name _∙name=_ _∙name↝_
             $library _∙library _∙library=_ _∙library↝_
@@ -265,6 +295,7 @@ unquoteDecl $name _∙name _∙name=_ _∙name↝_
             $exile _∙exile _∙exile=_ _∙exile↝_
             $life _∙life _∙life=_ _∙life↝_
             $control _∙control _∙control=_ _∙control↝_
+            $manaPool _∙manaPool _∙manaPool=_ _∙manaPool↝_
   = deriveLenses (quote Player)
   ( ($name , _∙name , _∙name=_ , _∙name↝_)
   ∷ ($library , _∙library , _∙library=_ , _∙library↝_)
@@ -273,6 +304,7 @@ unquoteDecl $name _∙name _∙name=_ _∙name↝_
   ∷ ($exile , _∙exile , _∙exile=_ , _∙exile↝_)
   ∷ ($life , _∙life , _∙life=_ , _∙life↝_)
   ∷ ($control , _∙control , _∙control=_ , _∙control↝_)
+  ∷ ($manaPool , _∙manaPool , _∙manaPool=_ , _∙manaPool↝_)
   ∷ [])
 infixl 10
   _∙name=_ _∙name↝_
@@ -282,6 +314,7 @@ infixl 10
   _∙exile=_ _∙exile↝_
   _∙life=_ _∙life↝_
   _∙control=_ _∙control↝_
+  _∙manaPool=_ _∙manaPool↝_
 
 data Turn : Type where
   on-the-play on-the-draw : Turn
@@ -298,10 +331,10 @@ record GameState : Type where
     player₂  : Player
 
     curTurn : Turn
-    turnTrans : Op₁ Turn
+    nextTurn : Op₁ Turn
 
     curPhase : Phase
-    phaseTrans : Phase → Phase
+    nextPhase : Op₁ Phase
 
     hasPlayedLand : Bool
     outcome : Maybe Outcome
@@ -312,32 +345,60 @@ private variable s s′ s″ : GameState
 unquoteDecl 𝕃 _∙l _∙l=_ _∙l↝_
             ℝ _∙r _∙r=_ _∙r↝_
             $curTurn _∙curTurn _∙curTurn=_ _∙curTurn↝_
-            $turnTrans _∙turnTrans _∙turnTrans=_ _∙turnTrans↝_
+            $nextTurn _∙nextTurn _∙nextTurn=_ _∙nextTurn↝_
             $curPhase _∙curPhase _∙curPhase=_ _∙curPhase↝_
-            $phaseTrans _∙phaseTrans _∙phaseTrans=_ _∙phaseTrans↝_
+            $nextPhase _∙nextPhase _∙nextPhase=_ _∙nextPhase↝_
             $hasPlayedLand _∙hasPlayedLand _∙hasPlayedLand=_ _∙hasPlayedLand↝_
             $outcome _∙outcome _∙outcome=_ _∙outcome↝_
   = deriveLenses (quote GameState)
     ( (𝕃 , _∙l , _∙l=_ , _∙l↝_)
     ∷ (ℝ , _∙r , _∙r=_ , _∙r↝_)
     ∷ ($curTurn , _∙curTurn , _∙curTurn=_ , _∙curTurn↝_)
-    ∷ ($turnTrans , _∙turnTrans , _∙turnTrans=_ , _∙turnTrans↝_)
+    ∷ ($nextTurn , _∙nextTurn , _∙nextTurn=_ , _∙nextTurn↝_)
     ∷ ($curPhase , _∙curPhase , _∙curPhase=_ , _∙curPhase↝_)
-    ∷ ($phaseTrans , _∙phaseTrans , _∙phaseTrans=_ , _∙phaseTrans↝_)
+    ∷ ($nextPhase , _∙nextPhase , _∙nextPhase=_ , _∙nextPhase↝_)
     ∷ ($hasPlayedLand , _∙hasPlayedLand , _∙hasPlayedLand=_ , _∙hasPlayedLand↝_)
     ∷ ($outcome , _∙outcome , _∙outcome=_ , _∙outcome↝_)
     ∷ [])
+infixl 9.9
+  _∙l
+  _∙r
+  _∙curTurn
+  _∙nextTurn
+  _∙curPhase
+  _∙nextPhase
+  _∙hasPlayedLand
+  _∙outcome
 infixl 10
   _∙l=_ _∙l↝_
   _∙r=_ _∙r↝_
   _∙curTurn=_ _∙curTurn↝_
-  _∙turnTrans=_ _∙turnTrans↝_
+  _∙nextTurn=_ _∙nextTurn↝_
   _∙curPhase=_ _∙curPhase↝_
-  _∙phaseTrans=_ _∙phaseTrans↝_
+  _∙nextPhase=_ _∙nextPhase↝_
   _∙hasPlayedLand=_ _∙hasPlayedLand↝_
   _∙outcome=_ _∙outcome↝_
 
-_∙curPlayer _∙otherPlayer : GameState → Player
+  _∘curPlayer↝_ _∘otherPlayer↝_
+  _∙curPlayer=_ _∙otherPlayer=_
+
+_∘curPlayer _∘otherPlayer : GameState → Lens GameState Player
+s ∘curPlayer = case s ∙curTurn of λ where
+  on-the-play → 𝕃
+  on-the-draw → ℝ
+s ∘otherPlayer = case s ∙curTurn of λ where
+  on-the-play → ℝ
+  on-the-draw → 𝕃
+
+_∘curPlayer↝_ _∘otherPlayer↝_ : Modifier GameState Player
+s ∘curPlayer↝   f = ((s ∘curPlayer)   ∙modify) s f
+s ∘otherPlayer↝ f = ((s ∘otherPlayer) ∙modify) s f
+
+_∙curPlayer=_ _∙otherPlayer=_ : Setter GameState Player
+s ∙curPlayer=   p = (s ∘curPlayer)   .set s p
+s ∙otherPlayer= p = (s ∘otherPlayer) .set s p
+
+_∙curPlayer _∙otherPlayer : Getter GameState Player
 s ∙curPlayer = case s ∙curTurn of λ where
   on-the-play → s ∙l
   on-the-draw → s ∙r
@@ -345,30 +406,49 @@ s ∙otherPlayer = case s ∙curTurn of λ where
   on-the-play → s ∙r
   on-the-draw → s ∙l
 
+infix 9.9 _∙proceedTurn
+_∙proceedTurn : Op₁ GameState
+s ∙proceedTurn = reset $ s ∙curTurn↝ (s ∙nextTurn)
+  where
+    reset : Op₁ GameState
+    reset s = s ∙hasPlayedLand= false
+             -- ∙nextPhase= (Default-NextPhase .def)
+             -- ∙nextTurn= (Default-TurnPhase .def)
+                ∘curPlayer↝   (_∙control↝ map _∙untap)
+                ∘otherPlayer↝ (_∙control↝ map _∙untap)
+
+infix 9.9 _∙proceedPhase
+_∙proceedPhase : Op₁ GameState
+s ∙proceedPhase = s ∙curPhase↝ (s ∙nextPhase)
+                    ∘curPlayer↝   (_∙manaPool= ∅)
+                    ∘otherPlayer↝ (_∙manaPool= ∅)
+proceedPhase = _∙proceedPhase
+
 instance
   Default-Player : Default Player
   Default-Player .def = λ where
-    .name → ""
-    .library → []
-    .hand → []
-    .graveyard → []
-    .exile → []
-    .life → 0
-    .control → []
+    .name → ε
+    .library → ε
+    .hand → ε
+    .graveyard → ε
+    .exile → ε
+    .life → ε
+    .control → ε
+    .manaPool → ∅
 
   Default-Turn : Default Turn
   Default-Turn .def = on-the-play
 
-  Default-TurnTrans : Default (Op₁ Turn)
-  Default-TurnTrans .def = λ where
+  Default-NextTurn : Default (Op₁ Turn)
+  Default-NextTurn .def = λ where
     on-the-draw → on-the-play
     on-the-play → on-the-draw
 
   Default-Phase : Default Phase
   Default-Phase .def = draw
 
-  Default-PhaseTrans : Default (Op₁ Phase)
-  Default-PhaseTrans .def = λ where
+  Default-NextPhase : Default (Op₁ Phase)
+  Default-NextPhase .def = λ where
     draw → main
     main → draw
 
@@ -377,9 +457,9 @@ instance
     .player₁ → def
     .player₂ → def
     .curTurn → def
-    .turnTrans → Default-TurnTrans .def
+    .nextTurn → Default-NextTurn .def
     .curPhase → def
-    .phaseTrans → Default-PhaseTrans .def
+    .nextPhase → Default-NextPhase .def
     .hasPlayedLand → false
     .outcome → nothing
 
@@ -416,7 +496,10 @@ p₁≢p₂ eq =
 𝕃≢ℝ : 𝕃 ≢ ℝ
 𝕃≢ℝ = p₁≢p₂ ∘ cong get
 
-mkWin : Turn → Outcome
+mkLose mkWin : Turn → Outcome
+mkLose = λ where
+  on-the-play → 𝟚-WINS
+  on-the-draw → 𝟙-WINS
 mkWin = λ where
   on-the-play → 𝟙-WINS
   on-the-draw → 𝟚-WINS
@@ -432,58 +515,59 @@ defInstance c = record {card = c; tapped = false; properties = toControl c}
 infix 4 _↝_
 data _↝_ : Rel₀ GameState where
 
+  EndTurn :
+    ∙ Is-nothing (s ∙outcome)
+    ∙ (s ∙curPhase ≡ main)
+      ─────────────────────────────────
+      s ↝ (s ∙proceedPhase) ∙proceedTurn
+
   DrawLose :
     ∙ Is-nothing (s ∙outcome)
     ∙ (s ∙curPhase ≡ draw)
     ∙ (s ∙curPlayer ∙library ≡ [])
       ─────────────────────────────────
-      s ↝ s ∙outcome= just (mkWin (s ∙curTurn) )
+      s ↝ s ∙outcome= just (mkLose (s ∙curTurn))
 
-  -- Draw : ∀ (player : Lens GameState Player) →
-  --   let p   = player .get s
-  --       p=_ = player .set s
-  --       p↝_ = (player ∙modify) s
+  Draw :
+    ∙ Is-nothing (s ∙outcome)
+    ∙ (s ∙curPhase ≡ draw)
+    ∙ (s ∙curPlayer ∙library ≡  c ∷ lib)
+      ─────────────────────────────────
+      s ↝ s ∘curPlayer↝ ( _∙hand↝    (c ∷_)
+                        ∘ _∙library= lib )
+            ∙proceedPhase -- T0D0: factor out to accommodate instants
 
-  --       lib = p ∙library
-  --   in
-  --   (lib≡ : lib ≡ c ∷ lib′) →
-  --   IsLand c →
-  --   -- ¬ T (s ∙hasPlayedLand)
-  --   ─────────────────────────────────
-  --   s ↝ p↝ ( _∙hand↝ (c ∷_)
-  --          ∘ _∙lib=  lib′
-  --          )
-
-  PlayLand : ∀ (player : Lens GameState Player) →
-    let p   = player .get s
-        p=_ = player .set s
-        p↝_ = (player ∙modify) s
-
-        h   = p ∙hand
-    in
+  PlayLand : let h = s ∙curPlayer ∙hand in
+    Is-nothing (s ∙outcome) →
+    (s ∙curPhase ≡ main) →
+    ¬ T (s ∙hasPlayedLand) →
     (c∈ : c ∈ h) →
     IsLand c →
-    -- ¬ T (s ∙hasPlayedLand)
     ─────────────────────────────────
-    s ↝ p↝ ( _∙control↝ (defInstance c ∷_)
-           ∘ _∙hand=    remove h (L.Any.index c∈)
-           )
-        -- ∙hasPlayedLand= true
+    s ↝ s ∘curPlayer↝ ( _∙control↝ (defInstance c ∷_)
+                      ∘ _∙hand=    remove h (L.Any.index c∈) )
+          ∙hasPlayedLand= true
 
-  -- PlayCreature : ∀ (player : Lens GameState Player) →
-  --   let p   = player .get s
-  --       p=_ = player .set s
-  --       p↝_ = (player ∙modify) s
+  PlayCreature : let h = s ∙curPlayer ∙hand in
+    Is-nothing (s ∙outcome) →
+    (s ∙curPhase ≡ main) →
+    (c∈ : c ∈ h) →
+    IsCreature c →
+    (mc ∈ˢ (c ∙cost)) →
+    ((s ∙curPlayer) ∙manaPool) ─ᵐ mc ≡ just mp →
+    ─────────────────────────────────────────────────────────
+    s ↝ s ∘curPlayer↝ ( _∙control↝  (defInstance c ∷_)
+                      ∘ _∙hand=     remove h (L.Any.index c∈)
+                      ∘ _∙manaPool= mp )
 
-  --       h    = p ∙hand
-  --   in
-  --   (c∈ : c ∈ h) →
-  --   IsCreature c →
-  --   c ∙cost ≤ curManaPool →
-  --   ─────────────────────────────────
-  --   s ↝ p↝ ( _∙control↝ (defInstance c ∷_)
-  --          ∘ _∙hand=    remove h (L.Any.index c∈)
-  --          )
+  TapLand : let ctrl = s ∙curPlayer ∙control in
+    Is-nothing (s ∙outcome) →
+    (s ∙curPhase ≡ main) →
+    (c∈ : ci ∈ ctrl) → let c = ci ∙card in
+    IsLand c →
+    ──────────────────────────────────────────────────────────────────
+    s ↝ s ∘curPlayer↝ ( _∙control=  (ctrl [ L.Any.index c∈ ]%= _∙tap)
+                      ∘ _∙manaPool↝ (_◇ (c ∙mana)) )
 
 open ReflexiveTransitiveClosure _↝_ public
   using (begin_; _∎)
@@ -491,67 +575,82 @@ open ReflexiveTransitiveClosure _↝_ public
 
 private
   S  = def ∙l↝ ( _∙name= "Orestis"
-               ∘ _∙hand= [ Forest ] )
-           ∙r↝ (_∙name= "Kokos")
-  S′ = S ∙l↝ ( _∙hand=    []
-             ∘ _∙control= [ defInstance Forest ] )
+               ∘ _∙library= [ Mountain ]
+               )
+           ∙r↝ (_∙name= "Kokos"
+               ∘ _∙library= [ Forest ]
+               )
+
+  S′ = def ∙outcome= just 𝟚-WINS
+           ∙l↝ ( _∙name= "Orestis"
+               ∘ _∙control= [ defInstance Mountain ]
+               )
+           ∙r↝ (_∙name= "Kokos"
+               ∘ _∙control= [ defInstance Forest ]
+               )
 
   _ : S ↝∗ S′
   _ = begin
       S
-    ↝⟨ PlayLand 𝕃 auto auto ⟩
+    ↝⟨ Draw auto refl refl ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙hand=    [ Mountain ] )
+         ∙curPhase= main
+      )
+    ↝⟨ PlayLand auto refl auto auto auto ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Mountain ]
+             )
+         ∙curPhase= main
+         ∙hasPlayedLand= true
+      )
+    ↝⟨ EndTurn auto refl ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙curTurn=  on-the-draw
+         ∙curPhase= draw
+      )
+    ↝⟨ Draw auto refl refl ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙r↝ ( _∙library= []
+             ∘ _∙hand= [ Forest ] )
+         ∙curTurn=  on-the-draw
+         ∙curPhase= main
+      )
+    ↝⟨ PlayLand auto refl auto auto auto ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙hand= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙r↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Forest ] )
+         ∙curTurn=  on-the-draw
+         ∙curPhase= main
+         ∙hasPlayedLand= true
+      )
+    ↝⟨ TapLand auto refl (here refl) auto ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙hand= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙r↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Forest ∙tap ]
+             ∘ _∙manaPool= (G ↦ 1) )
+         ∙curTurn=  on-the-draw
+         ∙curPhase= main
+         ∙hasPlayedLand= true
+      )
+    ↝⟨ EndTurn auto refl ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙hand= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙r↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Forest ] )
+         ∙curTurn=  on-the-play
+         ∙curPhase= draw
+      )
+    ↝⟨ DrawLose auto refl refl ⟩
       S′
     ∎
-
-  -- _ : S ↝∗ S′
-  -- _ = begin
-  --     ...
-  --   ↝⟨ PlayLand 𝕃 auto auto ⟩
-  --     ...
-  --   ↝⟨ PlayLand ℝ auto auto ⟩
-  --     ...
-  --   ∎
-
-  -- _ : S ↝∗ S′
-  -- _ = begin
-  --     ...
-  --   ↝⟨ PlayLand 𝕃 auto auto ⟩
-  --   ↝⟨ PlayLand 𝕃 auto auto ⟩
-  --     ...
-  --   ∎
-
-  -- _ : S ↝∗ S′
-  -- _ = begin
-  --   {S}
-  --   --TURNS
-  --   𝕃: --PHASES
-  --     {S}
-  --     DRAW: Forest
-  --     {S₁}
-  --     MAIN:
-  --       ∙ play land (Forest)
-  --     {S₂}
-  --   ℝ:
-  --     {S₂}
-  --     DRAW: ToxicGnarler
-  --     {S₃}
-  --     MAIN:
-  --       ∙ play land (Mountain)
-  --     {S₄}
-  --   𝕃:
-  --     {S₄}
-  --     DRAW: TreeHugger
-  --     {S₅}
-  --     MAIN:
-  --       ∙ play creature (TreeHugger)
-  --     {S₆}
-  --   ℝ:
-  --     DRAW: Mountain
-  --     MAIN:
-  --       ∙ play land (Mountain)
-  --       ∙ play creature (ToxicGnarler)
-  --   {S′}
-  --   ∎
 
 {-
 
