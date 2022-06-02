@@ -3,6 +3,7 @@ module Types where
 open import Prelude.Init
 open SetAsType
 open L using (_[_]%=_)
+open Unary using () renaming (_∩_ to _∩¹_)
 open import Prelude.DecEq
 open import Prelude.Semigroup
 open import Prelude.Maps.Concrete
@@ -21,6 +22,7 @@ open import Prelude.Closures
 open import Prelude.Lenses
 open import Prelude.Default hiding (Default-→)
 open import Prelude.Lists hiding (_↦_)
+open import Prelude.Lists.Sublists
 open import Prelude.Membership
 open import Prelude.Show
 
@@ -252,6 +254,10 @@ _∙tap _∙untap : Op₁ CardInstance
 ci ∙tap = record ci {tapped = true}
 ci ∙untap = record ci {tapped = false}
 
+IsTapped IsUntapped : Pred₀ CardInstance
+IsTapped = T ∘ tapped
+IsUntapped = ¬_ ∘ IsTapped
+
 private
   unsummon : Op₁ CreatureProperties
   unsummon ps = record ps {summoningSickness = false}
@@ -320,7 +326,7 @@ data Turn : Type where
   on-the-play on-the-draw : Turn
 
 data Phase : Type where
-  draw main : Phase
+  draw main attack end : Phase
 
 data Outcome : Type where
   DRAW 𝟙-WINS 𝟚-WINS : Outcome
@@ -338,6 +344,24 @@ record GameState : Type where
 
     hasPlayedLand : Bool
     outcome : Maybe Outcome
+    attackers : Maybe $ List CardInstance
+    blockers  : Maybe $ List CardInstance
+
+  -- private
+  --   curPlayer = case curTurn of λ where
+  --     on-the-play → player₁
+  --     on-the-draw → player₂
+  --   otherPlayer = case curTurn of λ where
+  --     on-the-play → player₂
+  --     on-the-draw → player₁
+
+  -- field
+  --   attackers : Maybe $ ∃ (_⊑ (curPlayer ∙control))
+  --   blockers  : Maybe $ ∃ (  (_⊑ (otherPlayer ∙control))
+  --                         ∩¹ (_⊆ (curPlayer ∙control)))
+
+    -- attackers : Maybe $ ∃ (_⊑ (player₁ ∙control))
+    -- blockers  : Maybe $ ∃ (_⊑ (player₂ ∙control))
 
 open GameState public
 private variable s s′ s″ : GameState
@@ -350,6 +374,8 @@ unquoteDecl 𝕃 _∙l _∙l=_ _∙l↝_
             $nextPhase _∙nextPhase _∙nextPhase=_ _∙nextPhase↝_
             $hasPlayedLand _∙hasPlayedLand _∙hasPlayedLand=_ _∙hasPlayedLand↝_
             $outcome _∙outcome _∙outcome=_ _∙outcome↝_
+            $attackers _∙attackers _∙attackers=_ _∙attackers↝_
+            $blockers _∙blockers _∙blockers=_ _∙blockers↝_
   = deriveLenses (quote GameState)
     ( (𝕃 , _∙l , _∙l=_ , _∙l↝_)
     ∷ (ℝ , _∙r , _∙r=_ , _∙r↝_)
@@ -359,6 +385,8 @@ unquoteDecl 𝕃 _∙l _∙l=_ _∙l↝_
     ∷ ($nextPhase , _∙nextPhase , _∙nextPhase=_ , _∙nextPhase↝_)
     ∷ ($hasPlayedLand , _∙hasPlayedLand , _∙hasPlayedLand=_ , _∙hasPlayedLand↝_)
     ∷ ($outcome , _∙outcome , _∙outcome=_ , _∙outcome↝_)
+    ∷ ($attackers , _∙attackers , _∙attackers=_ , _∙attackers↝_)
+    ∷ ($blockers , _∙blockers , _∙blockers=_ , _∙blockers↝_)
     ∷ [])
 infixl 9.9
   _∙l
@@ -369,6 +397,8 @@ infixl 9.9
   _∙nextPhase
   _∙hasPlayedLand
   _∙outcome
+  _∙attackers
+  _∙blockers
 infixl 10
   _∙l=_ _∙l↝_
   _∙r=_ _∙r↝_
@@ -378,6 +408,8 @@ infixl 10
   _∙nextPhase=_ _∙nextPhase↝_
   _∙hasPlayedLand=_ _∙hasPlayedLand↝_
   _∙outcome=_ _∙outcome↝_
+  _∙attackers=_ _∙attackers↝_
+  _∙blockers=_ _∙blockers↝_
 
   _∘curPlayer↝_ _∘otherPlayer↝_
   _∙curPlayer=_ _∙otherPlayer=_
@@ -449,8 +481,10 @@ instance
 
   Default-NextPhase : Default (Op₁ Phase)
   Default-NextPhase .def = λ where
-    draw → main
-    main → draw
+    draw   → main
+    main   → attack
+    attack → end
+    end    → draw
 
   Default-GameState : Default GameState
   Default-GameState .def = λ where
@@ -462,6 +496,8 @@ instance
     .nextPhase → Default-NextPhase .def
     .hasPlayedLand → false
     .outcome → nothing
+    .attackers → nothing
+    .blockers → nothing
 
 instance
   Show-Player : Show Player
@@ -477,8 +513,10 @@ instance
 
   Show-Phase : Show Phase
   Show-Phase .show = λ where
-    draw → "draw"
-    main → "main"
+    draw   → "draw"
+    main   → "main"
+    attack → "attack"
+    end    → "end"
 
   Show-GameState : Show GameState
   Show-GameState .show s =
@@ -515,11 +553,7 @@ defInstance c = record {card = c; tapped = false; properties = toControl c}
 infix 4 _↝_
 data _↝_ : Rel₀ GameState where
 
-  EndTurn :
-    ∙ Is-nothing (s ∙outcome)
-    ∙ (s ∙curPhase ≡ main)
-      ─────────────────────────────────
-      s ↝ (s ∙proceedPhase) ∙proceedTurn
+  -- PHASE: draw
 
   DrawLose :
     ∙ Is-nothing (s ∙outcome)
@@ -536,6 +570,8 @@ data _↝_ : Rel₀ GameState where
       s ↝ s ∘curPlayer↝ ( _∙hand↝    (c ∷_)
                         ∘ _∙library= lib )
             ∙proceedPhase -- T0D0: factor out to accommodate instants
+
+  -- PHASE: main
 
   PlayLand : let h = s ∙curPlayer ∙hand in
     Is-nothing (s ∙outcome) →
@@ -569,6 +605,75 @@ data _↝_ : Rel₀ GameState where
     s ↝ s ∘curPlayer↝ ( _∙control=  (ctrl [ L.Any.index c∈ ]%= _∙tap)
                       ∘ _∙manaPool↝ (_◇ (c ∙mana)) )
 
+  EndMain :
+    (s ∙curPhase ≡ main) →
+    ──────────────────────
+    s ↝ s ∙proceedPhase
+
+  -- PHASE: attack
+
+  DeclareAttackers : ∀ (as : List CardInstance) →
+    ∙ s ∙curPhase ≡ attack
+    ∙ Is-nothing (s ∙attackers)
+    ∙ as ⊑ s ∙curPlayer ∙control
+    ∙ All (IsCreature ∘ card) as
+    ∙ All IsUntapped as
+      ────────────────────────────────────────────
+      s ↝ s ∙attackers= just as
+
+  DeclareBlockers : ∀ (as bs : List CardInstance) →
+    ∙ (s ∙curPhase ≡ attack)
+    ∙ s ∙attackers ≡ just as
+    ∙ Is-nothing (s ∙blockers)
+    ∙ bs ⊑ s ∙otherPlayer ∙control
+    ∙ All (IsCreature ∘ card) as
+    ∙ All IsUntapped as
+    ∙ bs ⊆ as
+      ────────────────────────────────────────────
+      s ↝ s ∙blockers= just bs
+
+{-
+  ToDamage : ∀ (as bs₀ bs : List CardInstance) →
+    -- TODO: battle assignment has been lost in previous rule
+    (bs↭ : bs ↭ bs₀)
+    (as⊑ : as ⊑ s ∙curPlayer ∙control)
+    (bs⊑ : bs ⊑ s ∙otherPlayer ∙control)
+    (s ∙curPhase ≡ attack) →
+    (s ∙attackers) ≡ just as →
+    (s ∙blockers) ≡ just bs →
+    -- [T0D0]
+    -- ∙ calculate damage
+    -- ∙ send dead creatures to graveyard
+
+    -- TODO: switch to an event-driven architecture
+    -- s ↝ s ∙effects↝ (_++ calcCombatEffects as bs...)
+    --                e.g. recalculate indices/references
+    let dead-cs , as′ , bs′ =
+      executeCombat (s ∙curPlayer ∙control)
+                    (s ∙otherPlayer ∙control)
+                    as bs
+    ─────────────────────────────────────
+    s ↝ s ∙graveyard↝ (_◇ dead-cs)
+          ∙curPlayer↝   ∙control↝
+            (λ c → remove⊑ as⊑ c ++ as′)
+            -- T0D0: this is not structure-preserving
+          ∙otherPlayer↝ ∙control↝
+            (λ c → remove⊑ bs⊑ c ++ bs′)
+-}
+
+  EndAttack :
+    (s ∙curPhase ≡ attack) →
+    ──────────────────────
+    s ↝ s ∙proceedPhase
+
+  -- PHASE: end
+
+  EndTurn :
+    ∙ Is-nothing (s ∙outcome)
+    ∙ (s ∙curPhase ≡ end)
+      ─────────────────────────────────
+      s ↝ (s ∙proceedPhase) ∙proceedTurn
+
 open ReflexiveTransitiveClosure _↝_ public
   using (begin_; _∎)
   renaming (_—→⟨_⟩_ to _↝⟨_⟩_; _—↠_ to _↝∗_)
@@ -580,7 +685,6 @@ private
            ∙r↝ (_∙name= "Kokos"
                ∘ _∙library= [ Forest ]
                )
-
   S′ = def ∙outcome= just 𝟚-WINS
            ∙l↝ ( _∙name= "Orestis"
                ∘ _∙control= [ defInstance Mountain ]
@@ -604,6 +708,10 @@ private
          ∙curPhase= main
          ∙hasPlayedLand= true
       )
+    ↝⟨ EndMain refl ⟩
+      _
+    ↝⟨ EndAttack refl ⟩
+      _
     ↝⟨ EndTurn auto refl ⟩
       (S ∙l↝ ( _∙library= []
              ∘ _∙control= [ defInstance Mountain ] )
@@ -639,6 +747,19 @@ private
          ∙curPhase= main
          ∙hasPlayedLand= true
       )
+    ↝⟨ EndMain refl ⟩
+      (S ∙l↝ ( _∙library= []
+             ∘ _∙hand= []
+             ∘ _∙control= [ defInstance Mountain ] )
+         ∙r↝ ( _∙library= []
+             ∘ _∙control= [ defInstance Forest ∙tap ]
+             )
+         ∙curTurn=  on-the-draw
+         ∙curPhase= attack
+         ∙hasPlayedLand= true
+      )
+    ↝⟨ EndAttack refl ⟩
+      _
     ↝⟨ EndTurn auto refl ⟩
       (S ∙l↝ ( _∙library= []
              ∘ _∙hand= []
